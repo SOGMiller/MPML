@@ -11,9 +11,14 @@ import Classes as gp
 
 
 #Load data houseprice house_train
-df = dta.load_data("/home/sean/Downloads/Research/Projects/MPML Library/botnet_train3.csv", 50000)
-df = df.fillna(0)
+#df = dta.load_data("/home/sean/Downloads/Research/Projects/MPML Library/botnet_train3.csv", 50000)
+# df = df.fillna(0)
 #print (df.head())
+
+def LoadCSV(FilePath):
+    dataFrame = dta.load_data(FilePath, 50000)
+    dataFrame = dataFrame.fillna(0)
+    return dataFrame
 
 # print(df.loc[[0]]) 
 # print(df.loc[[54]]) 
@@ -75,7 +80,7 @@ def pairWise(dataFrame):
     pairs = []
 
     #Get List of features (Column names)
-    features = list(df) 
+    features = list(dataFrame) 
 
     for fea in features:
         #Loop throught with the current feature "fea" fixed
@@ -319,14 +324,17 @@ def groupFeatures (dataFrame):
 
         #Pull the next feature from that list
         feature = all_features[0]
-        # print (feature)
+        print ("Curent Feature - {}".format(feature))
 
         #Get this feature's stongest link
         best_link = get_best_link(feature)
+        print ("Best Link - {}".format(best_link))
 
         #Check if the strongest link is in a group
         # print (gp.Groups.is_grouped(best_link))
         # print (best_link)
+
+
 
         if(best_link == -1):
             all_features.remove(feature)
@@ -397,16 +405,13 @@ def generatePerspectives (dataFrame,targetName):
 
     return perspectiveList
 
-# sigValCsv(df)
-# generateRelations(df,"class")
-# # groupFeatures (df)
-# generatePerspectives(df,"class")
-
-# print (dta.is_discrete(df,"avg_byte"))
-# print (dta.is_discrete(df,"var_byte"))
-# print (dta.is_discrete(df,"std_byte"))
-# print (dta.is_discrete(df,"percent_push"))
-# print (dta.is_discrete(df,"protocol"))
 
 
-# print(getFeaturesRelations("src_port","protocol"))
+# We chose not to use coraltion for this since the direction the value moves tells us nothing about the relationship for this particular usecase, for example if the src port number increases and the destination port number increases then this means nothing iin security as the how the valuse change with respecto each other is not as important as what the values are. Hece we developed a methid to trach the relationship betwieen features with respect to the class label predicted. One limitation is that the relationship may change if the data is orderd differently (this must be tested)
+
+# new_shiz = df.drop(["class"], axis=1)
+
+
+# groupFeatures (new_shiz)
+
+# need to fix the class issue, the class is being seen as a feature and is therefore the best link to everything

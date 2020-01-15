@@ -23,10 +23,10 @@ instance_in_focus = 1
 threshold_Value = 1
 
 # # Data 1 is not 2 is bot
-df = dta.load_data("/home/sean/Downloads/Research/Projects/MPML Library/botnet_train3.csv", 50000)
+#df = dta.load_data("/home/sean/Downloads/Research/Projects/MPML Library/botnet_train3.csv", 50000)
 # df = df.fillna(0)
 
-Algo = GaussianNB()
+#Algo = GaussianNB()
 # Algo = tree.DecisionTreeClassifier()
 # Algo = svm.SVC(gamma='scale',probability=True)
 
@@ -39,14 +39,14 @@ if (Debug):
 # clf = tree.DecisionTreeClassifier()
 # clf = svm.SVC(gamma='scale')
 # clf = KNeighborsClassifier(n_neighbors=3)
-clf = GaussianNB()
+# clf = GaussianNB()
 
-dta.convert_discrete(df,threshold_Value)
-x_train, x_test, y_train, y_test = dta.data_setup(df,"class")
+# dta.convert_discrete(df,threshold_Value)
+# x_train, x_test, y_train, y_test = dta.data_setup(df,"class")
 
-clf = clf.fit(x_train,y_train)
+# clf = clf.fit(x_train,y_train)
 
-predictions = clf.predict(x_test)
+# predictions = clf.predict(x_test)
 
 
 #------------------------------------------------------------------------------------------------------------------
@@ -64,9 +64,9 @@ predictions = clf.predict(x_test)
 
 # print (len(predictions))
 # if (Debug):
-print ("Original Prediction Acuracy:")
-print (accuracy_score(y_test,predictions))
-print("\n")
+# print ("Original Prediction Acuracy:")
+# print (accuracy_score(y_test,predictions))
+# print("\n")
 
 
 # Write a function that when given a list of datafraes (Perspectives) will run a single ML algo on them and return the acuracy for each and the modles in a list.
@@ -285,7 +285,7 @@ def majorityVote(vote_df):
 
 # Try diffrent combination methods for diffrent algos and complete the libray by making it such that puting everyting in one fuction and run it.
 
-MPML(df,Algo,"class",threshold_Value)
+# MPML(df,Algo,"class",threshold_Value)
 # MPML(df,tree.DecisionTreeClassifier(),"class",threshold_Value)
 
 # majorityVote()
