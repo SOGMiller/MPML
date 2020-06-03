@@ -2,7 +2,7 @@
 
 class Groups:
 
-    all_groups = []
+    all_groups = [] 
 
     def __init__(self,leader):
         self.leader = leader

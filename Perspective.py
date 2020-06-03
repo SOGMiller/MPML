@@ -3,30 +3,31 @@ import Data as dta
 import pandas as pd
 import Classes as gp
 
-#data = [('A','B',1),('A','C',2.4),('A','D',2),('A','E',3),('B','C',1.2),('B','D',3.5),('B','E',2),('C','D',1.1),('C','E',1.2),('D','E',2)]
-#nodes_list =  ['D','C','E','A','B']
-#free_nodes = ['D','C','E','A','B']
-#test_group = [['Group', 'D', [('E', 4.2, type), ('A', 2)]], ['Group', 'C', [('B', 4)]]]
+from sklearn.feature_selection import RFE
+from sklearn import tree
+import copy
 
+import pathlib
 
-
-#Load data houseprice house_train
-#df = dta.load_data("/home/sean/Downloads/Research/Projects/MPML Library/botnet_train3.csv", 50000)
-# df = df.fillna(0)
-#print (df.head())
+path = str(pathlib.Path(__file__).parent.absolute())
 
 def LoadCSV(FilePath):
     dataFrame = dta.load_data(FilePath, 50000)
     dataFrame = dataFrame.fillna(0)
     return dataFrame
 
-# print(df.loc[[0]]) 
-# print(df.loc[[54]]) 
+def LoadCSV_instNum(FilePath,instNum):
+    dataFrame = dta.load_data(FilePath, instNum)
+    dataFrame = dataFrame.fillna(0)
+    return dataFrame
+
+def viewFeatures(df,target):
+    return list(df.drop([target], axis=1))
 
 
-def getFeatures(df):
+def getFeatures(df,target):
     #Get List of features (Column names)
-    features = list(df) 
+    features = list(df.drop([target], axis=1))
 
     # Craete a list of features and their types (real= False or descrete =True) - formant - [["fname1",False],["fname2",True]]
     fTypes = []
@@ -64,38 +65,36 @@ def cal_sig_change(dataFrame,feature):
     return sum(ChaValues)/col_length
 
 #This function generates a csv file with the real valued features and their significant change value
-def sigValCsv(dataFrame):
+def sigValCsv(dataFrame,target):
     data = []
-    for fea in getFeatures(dataFrame):
+    for fea in getFeatures(dataFrame,target):
         if (fea[1] == False):
             data.append([fea[0],cal_sig_change(dataFrame,fea[0])])
     
     new_df = pd.DataFrame(data,columns=['Feature','Significant Value'])
-    new_df.to_csv("/home/sean/Downloads/Research/Projects/MPML Library/SigChange.csv")
+    new_df.to_csv(path + "/SigChange.csv") 
+    
 
 #A function that generates a list of all possible pairs of features 
-def pairWise(dataFrame):
-
+def pairWise(dataFrame,target):
     #Stores all posible pairs of features
     pairs = []
 
     #Get List of features (Column names)
-    features = list(dataFrame) 
+    features = list(dataFrame.drop([target], axis=1))
 
     for fea in features:
         #Loop throught with the current feature "fea" fixed
         for fea2 in features[1:]:
             pairs.append([fea,fea2])
-        
         #Remove the first element from the list
         features = features[1:]
-
     return pairs
 
 #gets the significant change value of a particular feature 
 def getSigValue(feature):
     
-    sigDf = pd.read_csv("/home/sean/Downloads/Research/Projects/MPML Library/SigChange.csv")
+    sigDf = pd.read_csv(path + "/SigChange.csv")    
 
     #Count here is used to keep track of the index so we know what sig value we need to get
     count = 0
@@ -108,9 +107,6 @@ def getSigValue(feature):
 #Returns true if the previous value cnaged with the current false otherwise. real is set to true if it is a valued feature and the sig value is passed in.
 def didChange(curr,prev,real = False, sigVal = 0):
     if(real == True and sigVal != 0):
-        # print ("sssss")
-        # print (abs(prev - curr))
-        # print (sigVal)
         if (abs(prev - curr) > sigVal):
             return True
         else:
@@ -227,18 +223,17 @@ def getScores(f1,f2,target,dataFrame):
                         score2+=1 #If it did update score2
 
             prev_index+=1
-
     return score, score2
 
 #Using the results of the pairwise fuction this fuction genates a relationsip score for every posible pair of features and stores it in a csv file
 def generateRelations(dataFrame,target):
     #store the reltionships in this list then create a dataframe then store as csv [f1,f2,r-score]
     data = []
-
-    length = len(pairWise(dataFrame))
+ 
+    length = len(pairWise(dataFrame,target))
     count = 1
 
-    for pair in pairWise(dataFrame):
+    for pair in pairWise(dataFrame,target):
         score, score2 = getScores(pair[0],pair[1],target,dataFrame)
 
         data.append([pair[0],pair[1],sum([score,score2])])
@@ -247,7 +242,7 @@ def generateRelations(dataFrame,target):
         count+=1
     
     new_df = pd.DataFrame(data,columns=['Feature 1','Feature 2','Score'])
-    new_df.to_csv("/home/sean/Downloads/Research/Projects/MPML Library/Relations.csv")
+    new_df.to_csv(path + "/Relations.csv")
 
 
 #This function returns the max relation given a list of relations in this format - ['Id', 'MSSubClass', 1613]
@@ -263,7 +258,7 @@ def max_score(scoresList):
 
 #write a function to get all relations of a given feature
 def get_relations(feature):
-    location = "/home/sean/Downloads/Research/Projects/MPML Library/Relations.csv"
+    location = path + "\Relations.csv"
     rdf = pd.read_csv(location)
     rdfNames = list(rdf)
 
@@ -280,9 +275,8 @@ def get_relations(feature):
 
 
 # Write a function to get the link between 2 given features
-
 def getFeaturesRelations(feature1,feature2):
-    location = "/home/sean/Downloads/Research/Projects/MPML Library/Relations.csv"
+    location = path + "/Relations.csv"
     rdf = pd.read_csv(location)
     rdfNames = list(rdf)
 
@@ -313,6 +307,8 @@ def get_best_link(feature):
 
 #Wrrite a function to group features with the strongest links
 def groupFeatures (dataFrame):
+    print("==> Grouping Features...")
+
     #get a list of all features
     all_features = list(dataFrame)
     discard = []
@@ -331,36 +327,34 @@ def groupFeatures (dataFrame):
         print ("Best Link - {}".format(best_link))
 
         #Check if the strongest link is in a group
-        # print (gp.Groups.is_grouped(best_link))
-        # print (best_link)
-
-
+        print (gp.Groups.is_grouped(best_link))
+        print (best_link)
 
         if(best_link == -1):
             all_features.remove(feature)
             discard.append(feature)
 
+        elif(gp.Groups.is_grouped(best_link)):
+
+            #get the group that it is in
+            best_link_group = gp.Groups.get_group(best_link)
+
+            #put this geature in the same group as its stongest link
+            best_link_group.add_member(feature)
+
+            #remove the feature from the list of all features
+            all_features.remove(feature)
+        
         else:
-            if(gp.Groups.is_grouped(best_link)):
+            #Create a group and put both features in it
+            new_group = gp.Groups(feature)
+            new_group.add_member(best_link)
 
-                #get the group that it is in
-                best_link_group = gp.Groups.get_group(best_link)
-
-                #put this geature in the same group as its stongest link
-                best_link_group.add_member(feature)
-
-                #remove the feature from the list of all features
-                all_features.remove(feature)
-            
-            else:
-                #Create a group and put both features in it
-                new_group = gp.Groups(feature)
-                new_group.add_member(best_link)
-
-                #remove both features from the main list of features
-                all_features.remove(feature)
-                all_features.remove(best_link)
-
+            #remove both features from the main list of features
+            all_features.remove(feature)
+            # if (best_link in all_features):
+            # print (all_features)
+            all_features.remove(best_link)
 
 # Write a function that when given a set of features that represents a single perspective returns a dataframe 
 # with only those features and the data to go along with them. This function should also create a csv file of the 
@@ -382,7 +376,7 @@ def createPerspective (fList,dataFrame,targetName,file_name):
 
     newDataFrame = dataFrame.drop(dropList, axis=1)
 
-    newDataFrame.to_csv("/home/sean/Downloads/Research/Projects/MPML Library/"+file_name)
+    newDataFrame.to_csv(path + "/" +file_name)
 
     return newDataFrame
             
@@ -391,27 +385,112 @@ def createPerspective (fList,dataFrame,targetName,file_name):
 # Create a function that generate all perspectives as a list of dataFrames given the list of all the 
 # grouped features.
 
-def generatePerspectives (dataFrame,targetName):
+def generatePerspectives (dataFrame,targetName,selected_features=[]):
+
+	groupFeatures(dataFrame)
+	print("==> Generating Perspectives...")
+
+	i = 0
+	perspectiveList = []
+
+	if(selected_features == []):
+		
+		groups = getTopFeatures(dataFrame,targetName)
+		#gp.Groups.print_all_groups()
+	else:
+		groups = selected_features
+
+	for group in groups:
+		file_name = "perspect"+str(i)+".csv"
+		perspectiveList.append(createPerspective (group,dataFrame,targetName,file_name))
+		i+=1
+
+	print("From Perspective.py")
+	print (len(perspectiveList))
+	print("From Groups")
+	print (groups)
+
+	return perspectiveList
+
+def viewPerspectives(dataFrame):
     groupFeatures(dataFrame)
-
-    i = 0
     groups = gp.Groups.print_all_groups()
-    perspectiveList = []
+    return groups 
 
-    for group in groups:
-        file_name = "perspect"+str(i)+".csv"
-        perspectiveList.append(createPerspective (group,dataFrame,targetName,file_name))
-        i+=1
+#Write a function that couts the number of perspect[#].csv files to determine the number of perspectives
+def countPerspectives():
+    count = 0
+    flag = 0
 
-    return perspectiveList
+    while (flag != -1):
+        try:
+            f = open("perspect"+str(count)+".csv")
+            count += 1
+        except IOError:
+            flag = -1
+        finally:
+            f.close()
+            
+    return count
+
+# Write a function to accept a df and return the name (string) of the top ranking features
+def getTopFeatures(dataFrame,targetName):
+	algo = tree.DecisionTreeClassifier()
+
+    # Insert code to - Add top features to the group if it is not already in it.
+	dta.convert_discrete(dataFrame,1)
+	x_train, x_test, y_train, y_test = dta.data_setup(dataFrame,targetName)
+
+	rfe = RFE(estimator=algo,step=1)
+	rfe = rfe.fit(x_train,y_train)
+
+	selected_rfe_features_df = pd.DataFrame({'Feature': list(x_train.columns),'Ranking':rfe.ranking_})
+
+	rate_list = list(selected_rfe_features_df.values)
+
+	oldGroups = copy.deepcopy(gp.Groups.print_all_groups())
+	groups = gp.Groups.print_all_groups()
+
+	def getFeatureRating(f_list):
+		return f_list[1]
+
+	def getFeatureName(f_list):
+		return f_list[0]
+
+	top_features = []
+
+	for f_list in rate_list:
+		if(getFeatureRating(f_list) == 1 ):
+			top_features.append(getFeatureName(f_list))
+
+	
+	for feature in top_features:
+		print("Best Link for {} is {}".format(feature,get_best_link(feature)))
+		if(get_best_link(feature) not in top_features):
+			top_features.remove(feature)
+
+	for per in groups:
+		for feature in top_features:
+			if(feature not in per):
+				per.append(feature)
+
+	groups.append(top_features)
+
+	for OG in oldGroups:
+		groups.append(OG)
+	
+
+	print ("Top Features")
+	print (groups)
+
+	return groups
 
 
 
-# We chose not to use coraltion for this since the direction the value moves tells us nothing about the relationship for this particular usecase, for example if the src port number increases and the destination port number increases then this means nothing iin security as the how the valuse change with respecto each other is not as important as what the values are. Hece we developed a methid to trach the relationship betwieen features with respect to the class label predicted. One limitation is that the relationship may change if the data is orderd differently (this must be tested)
+# dataFrame = pd.read_csv (path + '/botnet_train3.csv')
+# sigValCsv(dataFrame,"class")
+# generateRelations(dataFrame,"class")
+# generatePerspectives (dataFrame,"class")
 
-# new_shiz = df.drop(["class"], axis=1)
 
-
-# groupFeatures (new_shiz)
-
-# need to fix the class issue, the class is being seen as a feature and is therefore the best link to everything
+ 
